@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system';
 import * as SQLite from 'expo-sqlite';
 import { Asset } from 'expo-asset';
 import * as SecureStore from 'expo-secure-store';
+import { preprocessWords } from '../utils/wordUtils';
 
 const prepareDatabase = async () => {
   const localDbUri = `${FileSystem.documentDirectory}SQLite/wordlist.db`;
@@ -34,18 +35,17 @@ const prepareDatabase = async () => {
 
 const dbPromise = prepareDatabase();
 
-export const fetchTopWords = async (setWords) => {
-  const db = await dbPromise;
-
-  db.transaction((tx) => {
-    tx.executeSql(
-      'SELECT * FROM wordlist ORDER BY word ASC LIMIT 100;',
-      [],
-      (_, { rows }) => {
-        console.log("asdasda");
-        console.log(rows._array);
-        setWords(rows._array);
-      }
-    );
-  });
-};
+export const fetchAllWords = async () => {
+    const db = await dbPromise;
+    return await new Promise((resolve) => {
+      db.transaction((tx) => {
+        tx.executeSql(
+          'SELECT * FROM wordlist;',
+          [],
+          (_, { rows }) => {
+            resolve(rows._array.map((row) => row.word));
+          }
+        );
+      });
+    });
+  };

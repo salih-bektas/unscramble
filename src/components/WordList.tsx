@@ -1,22 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { FlatList, Text, View, StyleSheet } from 'react-native';
-import { fetchTopWords } from '../database';
 
-const WordList = () => {
-  const [words, setWords] = useState([]);
+// Define the props interface
+interface WordListProps {
+  words: string[];
+}
 
-  useEffect(() => {
-    fetchTopWords(setWords);
-  }, []);
-
+const WordList: React.FC<WordListProps> = ({ words }) => {
   return (
     <View style={styles.container}>
       <FlatList
         data={words}
-        //keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
           <View style={styles.row}>
-            <Text style={styles.word}>{item.word}</Text>
+            <Text style={styles.word}>{item}</Text>
           </View>
         )}
       />
