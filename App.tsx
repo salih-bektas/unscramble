@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import WordList from './src/components/WordList';
-import { generateCombinations } from './src/utils/wordUtils';
+import { findWordsWithConstraints } from './src/utils/wordUtils';
 import { preprocess } from './src/database/preprocess';
 
 export default function App() {
@@ -66,10 +66,10 @@ export default function App() {
 
   const handleFindWords = async () => {
     const trieInstance = await preprocess();
-    const combinations = generateCombinations(letters, rule);
-    const filteredWords = combinations.filter((word) => trieInstance.contains(word));
+    const filteredWords = findWordsWithConstraints(trieInstance, letters, rule, leftAlign, rightAlign);
     setWords(filteredWords);
   };
+  
 
   const handleClear = () => {
     setLetters('');
@@ -81,8 +81,6 @@ export default function App() {
   const updateAlignment = (newLeftAlign: boolean, newRightAlign: boolean) => {
     setLeftAlign(newLeftAlign);
     setRightAlign(newRightAlign);
-    console.log('newLeftAlign: ', newLeftAlign);
-    console.log('newRightAlign: ', newRightAlign);
     if(newLeftAlign && newRightAlign)
     {
       setRuleAlignment('center');

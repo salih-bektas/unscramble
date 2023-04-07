@@ -12,44 +12,62 @@ export const preprocessWords = (words) => {
     return wordMap;
   };
   
-  const generateCombinationsHelper = (letters, jokers, rule, current, index, result) => {
-    if (index === letters.length) {
-      if (jokers === 0 && current.includes(rule)) {
-        result.push(current);
-      }
-      return;
+  export const findWordsWithConstraints = (
+    trieInstance,
+    letters,
+    rule,
+    leftAlign,
+    rightAlign
+  ) => {
+    let modifiedRule = rule;
+  
+    if (leftAlign) {
+      modifiedRule = '^' + modifiedRule;
     }
   
-    // Include the current letter
-    generateCombinationsHelper(letters, jokers, rule, current + letters[index], index + 1, result);
-  
-    // Exclude the current letter and use a joker (if available)
-    if (jokers > 0) {
-      generateCombinationsHelper(letters, jokers - 1, rule, current, index + 1, result);
+    if (rightAlign) {
+      modifiedRule = modifiedRule + '$';
     }
-  };
   
-  export const generateCombinations = (letters, jokers, rule) => {
-    const result = [];
-    generateCombinationsHelper(letters.split(''), jokers, rule, '', 0, result);
-    return result;
-  };
+    const ruleRegex = new RegExp(modifiedRule);
+    const results = new Set();
+    const visited = new Set();
   
-
-  export const findWords = (wordMap, combinations, trie) => {
-    const matchingWords = new Set();
-  
-    combinations.forEach((combination) => {
-      const sortedCombination = combination.split('').sort().join('');
-      if (wordMap.has(sortedCombination)) {
-        const words = wordMap.get(sortedCombination);
-        words.forEach((word) => {
-          if (trie.contains(word)) {
-            matchingWords.add(word);
-          }
-        });
+    const dfs = (node, currentWord, remainingLetters, jokers) => {
+      if (visited.has(node)) {
+        return;
       }
-    });
   
-    return Array.from(matchingWords);
+      visited.add(node);
+  
+      if (node.isWord && currentWord.match(ruleRegex)) {
+        results.add(currentWord);
+      }
+  
+      for (const letter of remainingLetters) {
+        if (letter in node.children) {
+          const nextNode = node.children[letter];
+          const nextRemainingLetters = remainingLetters.slice();
+          nextRemainingLetters.splice(nextRemainingLetters.indexOf(letter), 1);
+          dfs(nextNode, currentWord + letter, nextRemainingLetters, jokers);
+        }
+      }
+  
+      if (jokers > 0) {
+        for (const [childLetter, childNode] of Object.entries(node.children)) {
+          dfs(childNode, currentWord + childLetter, remainingLetters, jokers - 1);
+        }
+      }
+  
+      visited.delete(node);
+    };
+  
+    dfs(trieInstance.root, '', letters.split(''), letters.split('').filter((l) => l === '*').length);
+  
+    const sortedResults = Array.from(results).sort((a, b) => b.length - a.length);
+  
+    return sortedResults;
   };
+  
+  
+  
