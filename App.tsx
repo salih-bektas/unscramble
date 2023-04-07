@@ -117,6 +117,7 @@ export default function App() {
         <TouchableOpacity
           onPress={() => updateAlignment(!leftAlign, rightAlign)}
           style={[styles.alignButton, leftAlign && styles.alignButtonSelected]}
+          disabled={rule.startsWith('_')}
         >
           <Text style={styles.alignButtonText}>&lt;</Text>
         </TouchableOpacity>
@@ -131,6 +132,7 @@ export default function App() {
         <TouchableOpacity
           onPress={() => updateAlignment(leftAlign, !rightAlign)}
           style={[styles.alignButton, rightAlign && styles.alignButtonSelected]}
+          disabled={rule.endsWith('_')}
         >
           <Text style={styles.alignButtonText}>&gt;</Text>
         </TouchableOpacity>
