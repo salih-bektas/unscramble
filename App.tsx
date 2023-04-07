@@ -10,6 +10,9 @@ export default function App() {
   const [rule, setRule] = useState('');
   const [ruleAlignment, setRuleAlignment] = useState<'left' | 'center' | 'right'>('center');
   const [words, setWords] = useState<string[]>([]);
+  const [leftAlign, setLeftAlign] = useState(false);
+  const [rightAlign, setRightAlign] = useState(false);
+
 
   const onLettersChange = (text: string) => {
     const uppercasedText = text.toUpperCase();
@@ -22,7 +25,25 @@ export default function App() {
     const uppercasedText = text.toUpperCase();
     const allowedText = filterAllowedCharactersRules(uppercasedText);
     const convertedText = allowedText.replace(/ /g, '_');
+    let previousRuleStartsWith_ = rule.startsWith('_');
+    let previousRuleEndsWith_ = rule.endsWith('_');
     setRule(convertedText);
+    if(convertedText.startsWith('_'))
+    {
+      if(!previousRuleStartsWith_)
+        updateAlignment(true, rightAlign);
+    } else {
+      if(previousRuleStartsWith_)
+        updateAlignment(false, rightAlign);
+    }
+    if(convertedText.endsWith('_'))
+    {
+      if(!previousRuleEndsWith_)
+        updateAlignment(leftAlign, true);
+    } else {
+      if(previousRuleEndsWith_)
+        updateAlignment(leftAlign, false);
+    }
   };
 
   const filterAllowedCharactersLetters = (text: string) => {
@@ -57,6 +78,30 @@ export default function App() {
     setWords([]);
   };
 
+  const updateAlignment = (newLeftAlign: boolean, newRightAlign: boolean) => {
+    setLeftAlign(newLeftAlign);
+    setRightAlign(newRightAlign);
+    console.log('newLeftAlign: ', newLeftAlign);
+    console.log('newRightAlign: ', newRightAlign);
+    if(newLeftAlign && newRightAlign)
+    {
+      setRuleAlignment('center');
+    }
+    if(newLeftAlign && !newRightAlign)
+    {
+      setRuleAlignment('left');
+    }
+    if(!newLeftAlign && newRightAlign)
+    {
+      setRuleAlignment('right');
+    }
+    if(!newLeftAlign && !newRightAlign)
+    {
+      setRuleAlignment('center');
+    }
+  };
+  
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Scrabble Word Generator</Text>
@@ -68,33 +113,33 @@ export default function App() {
         placeholder="Enter letters and jokers (*)"
         keyboardType="default"
       />
-      <TextInput
-        style={[
-          styles.input,
-          { textAlign: ruleAlignment === 'center' && rule.includes('_') ? 'center' : ruleAlignment },
-        ]}
-        onChangeText={onRuleChange}
-        value={rule}
-        placeholder="Enter rule (substring)"
-        keyboardType="default"
-      />
+      <View style={styles.ruleContainer}>
+        <TouchableOpacity
+          onPress={() => updateAlignment(!leftAlign, rightAlign)}
+          style={[styles.alignButton, leftAlign && styles.alignButtonSelected]}
+        >
+          <Text style={styles.alignButtonText}>&lt;</Text>
+        </TouchableOpacity>
+        <TextInput
+          style={[styles.input, styles.ruleInput, { textAlign: ruleAlignment }]}
+          onChangeText={(text) => {
+            onRuleChange(text);
+          }}
+          value={rule}
+          placeholder="Enter rule (substring)"
+        />
+        <TouchableOpacity
+          onPress={() => updateAlignment(leftAlign, !rightAlign)}
+          style={[styles.alignButton, rightAlign && styles.alignButtonSelected]}
+        >
+          <Text style={styles.alignButtonText}>&gt;</Text>
+        </TouchableOpacity>
+      </View>
       <TouchableOpacity onPress={handleFindWords} style={styles.button}>
         <Text style={styles.buttonText}>Generate</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={handleClear} style={styles.button}>
         <Text style={styles.buttonText}>Clear</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => setRuleAlignment('left')}
-        style={[styles.button, ruleAlignment === 'left' && styles.selectedButton]}
-      >
-        <Text style={styles.buttonText}>Left</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => setRuleAlignment('right')}
-        style={[styles.button, ruleAlignment === 'right' && styles.selectedButton]}
-      >
-        <Text style={styles.buttonText}>Right</Text>
       </TouchableOpacity>
       <WordList words={words} />
     </View>
@@ -140,5 +185,27 @@ const styles = StyleSheet.create({
   wordListContainer: {
   flex: 1,
   width: '100%',
+  },
+  ruleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  alignButton: {
+    backgroundColor: '#ccc',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
+  },
+  alignButtonSelected: {
+    backgroundColor: '#1e90ff',
+  },
+  alignButtonText: {
+    color: '#fff',
+    fontSize: 18,
+  },
+  ruleInput: {
+    width: '60%',
   },
 });
