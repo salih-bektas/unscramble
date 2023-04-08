@@ -124,22 +124,6 @@ export const preprocessWords = (words) => {
       } else {
         callNextRound();
       }
-  /*
-      for (const letter of remainingLetters) {
-        if (letter in node.children) {
-          const nextNode = node.children[letter];
-          const nextRemainingLetters = remainingLetters.slice();
-          nextRemainingLetters.splice(nextRemainingLetters.indexOf(letter), 1);
-          dfs(nextNode, currentWord + letter, nextRemainingLetters, jokers);
-        }
-      }
-  
-      if (jokers > 0) {
-        for (const [childLetter, childNode] of Object.entries(node.children)) {
-          dfs(childNode, currentWord + childLetter, remainingLetters, jokers - 1);
-        }
-      }
-  */
       visited.delete(node);
     };
   
