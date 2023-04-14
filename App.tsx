@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import WordList from './src/components/WordList';
-import { findWordsWithConstraints } from './src/utils/wordUtils';
+import { findWordsWithConstraints, processResults } from './src/utils/wordUtils';
 import { preprocess } from './src/database/preprocess';
+import { SortableTable } from './src/components/SortableTable';
 
 export default function App() {
   const [letters, setLetters] = useState('');
   const [rule, setRule] = useState('');
   const [ruleAlignment, setRuleAlignment] = useState<'left' | 'center' | 'right'>('center');
-  const [words, setWords] = useState<string[]>([]);
+  const [words, setWords] = useState<
+      Array<{ word: string; length: number; score: number; coloredHtml: string }>
+    >([]);
   const [leftAlign, setLeftAlign] = useState(false);
   const [rightAlign, setRightAlign] = useState(false);
 
+  const columns = [
+    { id: 'word', label: 'Word', sortable: true },
+    { id: 'length', label: 'Length', sortable: true },
+    { id: 'score', label: 'Score', sortable: true },
+  ];
 
   const onLettersChange = (text: string) => {
     const uppercasedText = text.toUpperCase();
@@ -66,8 +73,15 @@ export default function App() {
 
   const handleFindWords = async () => {
     const trieInstance = await preprocess();
-    const filteredWords = findWordsWithConstraints(trieInstance, letters, rule, leftAlign, rightAlign);
-    setWords(filteredWords);
+    const sortedResults = findWordsWithConstraints(
+      trieInstance,
+      letters,
+      rule,
+      leftAlign,
+      rightAlign
+    );
+    const processedResults = processResults(sortedResults);
+    setWords(processedResults);
   };
   
 
@@ -98,7 +112,6 @@ export default function App() {
       setRuleAlignment('center');
     }
   };
-  
 
   return (
     <View style={styles.container}>
@@ -141,7 +154,7 @@ export default function App() {
       <TouchableOpacity onPress={handleClear} style={styles.button}>
         <Text style={styles.buttonText}>Clear</Text>
       </TouchableOpacity>
-      <WordList words={words} />
+      <SortableTable columns={columns} data={words} />
     </View>
   );
 }

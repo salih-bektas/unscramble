@@ -1,6 +1,8 @@
-export const preprocessWords = (words) => {
-    const wordMap = new Map();
+import { getLetterScore } from './scrabbleUtils';  
   
+  export const preprocessWords = (words) => {
+    const wordMap = new Map();
+
     words.forEach((word) => {
       const sortedWord = word.split('').sort().join('');
       if (!wordMap.has(sortedWord)) {
@@ -8,10 +10,40 @@ export const preprocessWords = (words) => {
       }
       wordMap.get(sortedWord).push(word);
     });
-  
+
     return wordMap;
   };
-  
+
+  export const processResults = (sortedResults) => {
+    return sortedResults.map((result) => {
+      const word = result.word;
+      const length = word.length;
+      const jokerPositions = result.jokerPositions;
+      const ruleLetterPositions = result.ruleLetterPositions;
+
+      let score = 0;
+      let coloredHtml = '';
+
+      for (let i = 0; i < length; i++) {
+        const letter = word[i];
+        if (!jokerPositions.includes(i)) {
+          score += getLetterScore(letter);
+        }
+
+        if (jokerPositions.includes(i)) {
+          coloredHtml += `<span style="color: red;">${letter}</span>`;
+        } else if (ruleLetterPositions.includes(i)) {
+          coloredHtml += `<span style="color: blue;">${letter}</span>`;
+        } else {
+          coloredHtml += letter;
+        }
+      }
+
+      return { word, length, score, coloredHtml };
+    });
+  };
+
+    
   export const findWordsWithConstraints = (
     trieInstance,
     letters,
@@ -20,29 +52,31 @@ export const preprocessWords = (words) => {
     rightAlign
   ) => {
     let modifiedRule = rule;
-  
+
     if (leftAlign) {
       modifiedRule = '^' + modifiedRule;
     }
-  
+
     if (rightAlign) {
       modifiedRule = modifiedRule + '$';
     }
 
     // Replace all occurrences of "_" with "."
     modifiedRule = modifiedRule.replace(/_/g, '.');
-  
+
     const ruleRegex = new RegExp(modifiedRule);
     const results = new Set();
     const visited = new Set();
-  
+
     const dfs = (
       node, 
       currentWord, 
       remainingLetters, 
       jokers, 
       remaningRule,
-      ruleIsBeingProcessed
+      ruleIsBeingProcessed,
+      jokerPositions,
+      ruleLetterPositions
     ) => {
       if(node == undefined) {
         return;
@@ -51,11 +85,15 @@ export const preprocessWords = (words) => {
       if (visited.has(node)) {
         return;
       }
-  
+
       visited.add(node);
-  
+
       if (node.isWord && currentWord.match(ruleRegex)) {
-        results.add(currentWord);
+        results.add({
+          word: currentWord,
+          jokerPositions: jokerPositions,
+          ruleLetterPositions: ruleLetterPositions,
+        });
       }
 
       const callNextRuleItem = () => {
@@ -74,7 +112,10 @@ export const preprocessWords = (words) => {
             remainingLetters,
             jokers,
             remaningRule,
-            true);
+            true,
+            jokerPositions,
+            [...ruleLetterPositions, currentWord.length]
+          );
         }
       }
 
@@ -92,7 +133,10 @@ export const preprocessWords = (words) => {
               nextRemainingLetters,
               jokers,
               remaningRule,
-              ruleIsBeingProcessed);
+              ruleIsBeingProcessed,
+              jokerPositions,
+              ruleLetterPositions
+            );
           }
         }
         if (jokers > 0) {
@@ -102,7 +146,10 @@ export const preprocessWords = (words) => {
               remainingLetters,
               jokers - 1,
               remaningRule,
-              ruleIsBeingProcessed);
+              ruleIsBeingProcessed,
+              [...jokerPositions, currentWord.length],
+              ruleLetterPositions
+            );
           }
         }
       }
@@ -126,13 +173,24 @@ export const preprocessWords = (words) => {
       }
       visited.delete(node);
     };
-  
-    dfs(trieInstance.root, '', letters.split(''), letters.split('').filter((l) => l === '*').length, rule.split(''), leftAlign);
-  
-    const sortedResults = Array.from(results).sort((a, b) => b.length - a.length);
-  
+
+    dfs(
+      trieInstance.root,
+      "",
+      letters.split(""),
+      letters.split("").filter((l) => l === "*").length,
+      rule.split(""),
+      leftAlign,
+      [],
+      []
+    );
+
+    const sortedResults = Array.from(results).sort(
+      (a, b) => b.word.length - a.word.length
+    );
+
     return sortedResults;
   };
-  
-  
-  
+
+    
+    
