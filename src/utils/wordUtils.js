@@ -1,49 +1,5 @@
 import { getLetterScore } from './scrabbleUtils';  
-  
-  export const preprocessWords = (words) => {
-    const wordMap = new Map();
 
-    words.forEach((word) => {
-      const sortedWord = word.split('').sort().join('');
-      if (!wordMap.has(sortedWord)) {
-        wordMap.set(sortedWord, []);
-      }
-      wordMap.get(sortedWord).push(word);
-    });
-
-    return wordMap;
-  };
-
-  export const processResults = (sortedResults) => {
-    return sortedResults.map((result) => {
-      const word = result.word;
-      const length = word.length;
-      const jokerPositions = result.jokerPositions;
-      const ruleLetterPositions = result.ruleLetterPositions;
-
-      let score = 0;
-      let coloredHtml = '';
-
-      for (let i = 0; i < length; i++) {
-        const letter = word[i];
-        if (!jokerPositions.includes(i)) {
-          score += getLetterScore(letter);
-        }
-
-        if (jokerPositions.includes(i)) {
-          coloredHtml += `<span style="color: red;">${letter}</span>`;
-        } else if (ruleLetterPositions.includes(i)) {
-          coloredHtml += `<span style="color: blue;">${letter}</span>`;
-        } else {
-          coloredHtml += letter;
-        }
-      }
-
-      return { word, length, score, coloredHtml };
-    });
-  };
-
-    
   export const findWordsWithConstraints = (
     trieInstance,
     letters,
@@ -69,14 +25,14 @@ import { getLetterScore } from './scrabbleUtils';
     const visited = new Set();
 
     const dfs = (
-      node, 
-      currentWord, 
-      remainingLetters, 
-      jokers, 
+      node,
+      currentWord,
+      coloredWord,
+      score,
+      remainingLetters,
+      jokers,
       remaningRule,
-      ruleIsBeingProcessed,
-      jokerPositions,
-      ruleLetterPositions
+      ruleIsBeingProcessed
     ) => {
       if(node == undefined) {
         return;
@@ -88,11 +44,12 @@ import { getLetterScore } from './scrabbleUtils';
 
       visited.add(node);
 
-      if (node.isWord && currentWord.match(ruleRegex)) {
+      if (node.isWord && currentWord.match(ruleRegex) && remaningRule.length == 0) {
         results.add({
           word: currentWord,
-          jokerPositions: jokerPositions,
-          ruleLetterPositions: ruleLetterPositions,
+          length: currentWord.length,
+          score: score,
+          coloredHtml: coloredWord
         });
       }
 
@@ -101,7 +58,7 @@ import { getLetterScore } from './scrabbleUtils';
           return;
         }
         const nextLetter = remaningRule[0];
-        remaningRule.splice(0,1);
+        const newRemainingRule = remaningRule.slice(1); // Create a new copy of the remaining rule array
         if(nextLetter == '_')
         {
           callNextRound();
@@ -109,16 +66,16 @@ import { getLetterScore } from './scrabbleUtils';
           const nextNode = node.children[nextLetter];
           dfs(nextNode,
             currentWord + nextLetter,
+            coloredWord + createRuleLetterHtml(nextLetter),
+            score + getLetterScore(nextLetter),
             remainingLetters,
             jokers,
-            remaningRule,
-            true,
-            jokerPositions,
-            [...ruleLetterPositions, currentWord.length]
+            newRemainingRule,
+            true
           );
         }
       }
-
+      
       const callNextRound = () => {
         if(!ruleIsBeingProcessed) {
           callNextRuleItem();
@@ -130,12 +87,12 @@ import { getLetterScore } from './scrabbleUtils';
             nextRemainingLetters.splice(nextRemainingLetters.indexOf(letter), 1);
             dfs(nextNode,
               currentWord + letter,
+              coloredWord + letter,
+              score + getLetterScore(letter),
               nextRemainingLetters,
               jokers,
               remaningRule,
-              ruleIsBeingProcessed,
-              jokerPositions,
-              ruleLetterPositions
+              ruleIsBeingProcessed
             );
           }
         }
@@ -143,12 +100,12 @@ import { getLetterScore } from './scrabbleUtils';
           for (const [childLetter, childNode] of Object.entries(node.children)) {
             dfs(childNode,
               currentWord + childLetter,
+              coloredWord + createJokerLetterHtml(childLetter),
+              score,
               remainingLetters,
               jokers - 1,
               remaningRule,
-              ruleIsBeingProcessed,
-              [...jokerPositions, currentWord.length],
-              ruleLetterPositions
+              ruleIsBeingProcessed
             );
           }
         }
@@ -177,12 +134,12 @@ import { getLetterScore } from './scrabbleUtils';
     dfs(
       trieInstance.root,
       "",
-      letters.split(""),
+      "",
+      0,
+      letters.split("").filter((l) => l != "*"),
       letters.split("").filter((l) => l === "*").length,
       rule.split(""),
-      leftAlign,
-      [],
-      []
+      false
     );
 
     const sortedResults = Array.from(results).sort(
@@ -191,6 +148,11 @@ import { getLetterScore } from './scrabbleUtils';
 
     return sortedResults;
   };
-
     
-    
+  const createJokerLetterHtml = (letter) => {
+    return `<span style="color: red;">${letter}</span>`;
+  };
+  
+  const createRuleLetterHtml = (letter) => {
+    return `<span style="color: blue;">${letter}</span>`;
+  };

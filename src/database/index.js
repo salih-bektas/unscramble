@@ -2,7 +2,6 @@ import * as FileSystem from 'expo-file-system';
 import * as SQLite from 'expo-sqlite';
 import { Asset } from 'expo-asset';
 import * as SecureStore from 'expo-secure-store';
-import { preprocessWords } from '../utils/wordUtils';
 
 const prepareDatabase = async () => {
   const localDbUri = `${FileSystem.documentDirectory}SQLite/wordlist.db`;

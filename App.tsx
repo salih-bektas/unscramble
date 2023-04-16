@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import { findWordsWithConstraints, processResults } from './src/utils/wordUtils';
+import { findWordsWithConstraints } from './src/utils/wordUtils';
 import { preprocess } from './src/database/preprocess';
 import { SortableTable } from './src/components/SortableTable';
 
@@ -32,9 +32,13 @@ export default function App() {
     const uppercasedText = text.toUpperCase();
     const allowedText = filterAllowedCharactersRules(uppercasedText);
     const convertedText = allowedText.replace(/ /g, '_');
-    let previousRuleStartsWith_ = rule.startsWith('_');
-    let previousRuleEndsWith_ = rule.endsWith('_');
+    //let previousRuleStartsWith_ = rule.startsWith('_');
+    //let previousRuleEndsWith_ = rule.endsWith('_');
+    let ruleStartsWith_ = convertedText.startsWith('_');
+    let ruleEndsWith_ = convertedText.endsWith('_');
+    updateAlignment(ruleStartsWith_, ruleEndsWith_);
     setRule(convertedText);
+    /*
     if(convertedText.startsWith('_'))
     {
       if(!previousRuleStartsWith_)
@@ -51,6 +55,7 @@ export default function App() {
       if(previousRuleEndsWith_)
         updateAlignment(leftAlign, false);
     }
+    */
   };
 
   const filterAllowedCharactersLetters = (text: string) => {
@@ -73,15 +78,15 @@ export default function App() {
 
   const handleFindWords = async () => {
     const trieInstance = await preprocess();
-    const sortedResults = findWordsWithConstraints(
+    
+    const result = findWordsWithConstraints(
       trieInstance,
       letters,
       rule,
       leftAlign,
       rightAlign
     );
-    const processedResults = processResults(sortedResults);
-    setWords(processedResults);
+    setWords(result);
   };
   
 
