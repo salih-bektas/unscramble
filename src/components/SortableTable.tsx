@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
+  FlatList,
 } from "react-native";
 
 type Column = {
@@ -26,27 +26,50 @@ type Props = {
   data: Data[];
 };
 
+type PreSortedDataType = {
+  [key: string]: {
+    asc: Data[];
+    desc: Data[];
+  };
+};
+
 export const SortableTable: React.FC<Props> = ({ columns, data }) => {
   const [sortConfig, setSortConfig] = useState<{
     key: string;
     direction: "asc" | "desc";
   } | null>(null);
 
-  const sortedData = React.useMemo(() => {
-    const sortableData = [...data];
-    if (sortConfig !== null) {
-      sortableData.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === "asc" ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === "asc" ? 1 : -1;
-        }
-        return 0;
-      });
+  const [preSortedData, setPreSortedData] = useState<PreSortedDataType>({});
+
+  useEffect(() => {
+    const newPreSortedData: PreSortedDataType = {};
+
+    for (const column of columns) {
+      if (column.sortable) {
+        newPreSortedData[column.id] = {
+          asc: [...data].sort((a, b) => {
+            if (a[column.id] < b[column.id]) return -1;
+            if (a[column.id] > b[column.id]) return 1;
+            return 0;
+          }),
+          desc: [...data].sort((a, b) => {
+            if (a[column.id] < b[column.id]) return 1;
+            if (a[column.id] > b[column.id]) return -1;
+            return 0;
+          }),
+        };
+      }
     }
-    return sortableData;
-  }, [data, sortConfig]);
+
+    setPreSortedData(newPreSortedData);
+  }, [data]);
+
+  const sortedData = React.useMemo(() => {
+    if (sortConfig !== null) {
+      return preSortedData[sortConfig.key][sortConfig.direction];
+    }
+    return data;
+  }, [data, preSortedData, sortConfig]);
 
   const requestSort = (key: string, sortable: boolean) => {
     if (!sortable) return;
@@ -91,6 +114,36 @@ export const SortableTable: React.FC<Props> = ({ columns, data }) => {
     return <Text>{elements}</Text>;
   };
 
+  const renderItem = ({ item }: { item: Data }) => (
+    <Row item={item} columns={columns} />
+  );
+
+  const Row = React.memo(({ item, columns }: { item: Data; columns: Column[] }) => {
+    return (
+      <View style={{ flexDirection: "row" }}>
+        {columns.map((column, columnIndex) => (
+          <View
+            key={column.id}
+            style={{
+              width: columnIndex === 0 ? "50%" : "25%",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 10,
+              borderWidth: 1,
+              borderColor: "white",
+            }}
+          >
+            {column.id === "word" ? (
+              renderColoredText(item["coloredHtml"] as string)
+            ) : (
+              <Text>{item[column.id]}</Text>
+            )}
+          </View>
+        ))}
+      </View>
+    );
+  });  
+
   return (
     <View style={{ flex: 1 }}>
       <View style={{ flexDirection: "row", backgroundColor: "white" }}>
@@ -119,33 +172,12 @@ export const SortableTable: React.FC<Props> = ({ columns, data }) => {
           </TouchableOpacity>
         ))}
       </View>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={{ flexDirection: "column" }}>
-          {sortedData.map((row, index) => (
-            <View key={index} style={{ flexDirection: "row" }}>
-              {columns.map((column, columnIndex) => (
-                <View
-                  key={column.id}
-                  style={{
-                    width: columnIndex === 0 ? "50%" : "25%",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: 10,
-                    borderWidth: 1,
-                    borderColor: "white",
-                  }}
-                >
-                  {column.id === "word" ? (
-                    renderColoredText(row["coloredHtml"] as string)
-                  ) : (
-                    <Text>{row[column.id]}</Text>
-                  )}
-                </View>
-              ))}
-            </View>
-          ))}
-        </View>
-      </ScrollView>
+      <FlatList
+        data={sortedData}
+        renderItem={({ item }) => renderItem({ item })}
+        keyExtractor={(_, index) => index.toString()}
+        contentContainerStyle={{ flexGrow: 1 }}
+      />
     </View>
   );
 };
